@@ -1,6 +1,6 @@
+
 'use server';
 
-import prisma from '@/lib/prisma';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
@@ -11,7 +11,7 @@ async function getAuthUser() {
     if (error || !user) {
         throw new Error('Unauthorized');
     }
-    return user;
+    return { user, supabase };
 }
 
 // --- POST ACTIONS ---
@@ -28,34 +28,34 @@ export async function createPost(formData: FormData) {
         throw new Error('Missing required fields');
     }
 
-    const user = await getAuthUser();
+    const { user, supabase } = await getAuthUser();
 
-    // Ensure user exists in Prisma (sync)
-    let author = await prisma.user.findUnique({
-        where: { id: user.id }
-    });
+    // Ensure user exists in public.users
+    let { data: author } = await supabase.from('users').select('*').eq('id', user.id).single();
 
     if (!author) {
-        author = await prisma.user.create({
-            data: {
-                id: user.id,
-                email: user.email!,
-                role: 'ADMIN', // First user is admin by default in this flow logic
-            }
-        });
+        // Create user in public.users
+        const { data: newAuthor, error: createError } = await supabase.from('users').insert({
+            id: user.id,
+            email: user.email!,
+            role: 'ADMIN' // Default to ADMIN for now as per logic
+        }).select().single();
+
+        if (createError) throw new Error(`Failed to create user: ${createError.message}`);
+        author = newAuthor;
     }
 
-    await prisma.post.create({
-        data: {
-            title,
-            slug,
-            content,
-            excerpt,
-            featuredImage,
-            published,
-            authorId: author.id,
-        },
+    const { error } = await supabase.from('posts').insert({
+        title,
+        slug,
+        content,
+        excerpt,
+        featured_image: featuredImage,
+        published,
+        author_id: author.id,
     });
+
+    if (error) throw new Error(`Failed to create post: ${error.message}`);
 
     revalidatePath('/blog');
     revalidatePath('/admin/posts');
@@ -70,19 +70,19 @@ export async function updatePost(id: string, formData: FormData) {
     const featuredImage = formData.get('featuredImage') as string;
     const published = formData.get('published') === 'on';
 
-    await getAuthUser();
+    const { supabase } = await getAuthUser();
 
-    await prisma.post.update({
-        where: { id },
-        data: {
-            title,
-            slug,
-            content,
-            excerpt,
-            featuredImage,
-            published,
-        },
-    });
+    const { error } = await supabase.from('posts').update({
+        title,
+        slug,
+        content,
+        excerpt,
+        featured_image: featuredImage,
+        published,
+        updated_at: new Date().toISOString()
+    }).eq('id', id);
+
+    if (error) throw new Error(`Failed to update post: ${error.message}`);
 
     revalidatePath('/blog');
     revalidatePath('/admin/posts');
@@ -90,21 +90,26 @@ export async function updatePost(id: string, formData: FormData) {
 }
 
 export async function deletePost(formData: FormData) {
-    await getAuthUser();
+    const { supabase } = await getAuthUser();
     const id = formData.get('id') as string;
-    await prisma.post.delete({ where: { id } });
+    const { error } = await supabase.from('posts').delete().eq('id', id);
+    if (error) throw new Error(`Failed to delete post: ${error.message}`);
     revalidatePath('/admin/posts');
     revalidatePath('/blog');
 }
 
 export async function togglePostPublish(formData: FormData) {
-    await getAuthUser();
+    const { supabase } = await getAuthUser();
     const id = formData.get('id') as string;
     const current = formData.get('currentState') === 'true';
-    await prisma.post.update({
-        where: { id },
-        data: { published: !current },
-    });
+
+    const { error } = await supabase.from('posts').update({
+        published: !current,
+        updated_at: new Date().toISOString()
+    }).eq('id', id);
+
+    if (error) throw new Error(`Failed to toggle post: ${error.message}`);
+
     revalidatePath('/admin/posts');
     revalidatePath('/blog');
 }
@@ -126,21 +131,21 @@ export async function createProject(formData: FormData) {
         throw new Error("Missing required fields");
     }
 
-    await getAuthUser();
+    const { supabase } = await getAuthUser();
 
-    await prisma.project.create({
-        data: {
-            title,
-            slug,
-            description,
-            content,
-            techStack,
-            liveUrl,
-            githubUrl,
-            featuredImage,
-            published
-        }
+    const { error } = await supabase.from('projects').insert({
+        title,
+        slug,
+        description,
+        content,
+        tech_stack: techStack,
+        live_url: liveUrl,
+        github_url: githubUrl,
+        featured_image: featuredImage,
+        published
     });
+
+    if (error) throw new Error(`Failed to create project: ${error.message}`);
 
     revalidatePath('/lab');
     revalidatePath('/admin/projects');
@@ -158,22 +163,22 @@ export async function updateProject(id: string, formData: FormData) {
     const featuredImage = formData.get('featuredImage') as string;
     const published = formData.get('published') === 'on';
 
-    await getAuthUser();
+    const { supabase } = await getAuthUser();
 
-    await prisma.project.update({
-        where: { id },
-        data: {
-            title,
-            slug,
-            description,
-            content,
-            techStack,
-            liveUrl,
-            githubUrl,
-            featuredImage,
-            published
-        }
-    });
+    const { error } = await supabase.from('projects').update({
+        title,
+        slug,
+        description,
+        content,
+        tech_stack: techStack,
+        live_url: liveUrl,
+        github_url: githubUrl,
+        featured_image: featuredImage,
+        published,
+        updated_at: new Date().toISOString()
+    }).eq('id', id);
+
+    if (error) throw new Error(`Failed to update project: ${error.message}`);
 
     revalidatePath('/lab');
     revalidatePath('/admin/projects');
@@ -181,21 +186,26 @@ export async function updateProject(id: string, formData: FormData) {
 }
 
 export async function deleteProject(formData: FormData) {
-    await getAuthUser();
+    const { supabase } = await getAuthUser();
     const id = formData.get('id') as string;
-    await prisma.project.delete({ where: { id } });
+    const { error } = await supabase.from('projects').delete().eq('id', id);
+    if (error) throw new Error(`Failed to delete project: ${error.message}`);
     revalidatePath('/admin/projects');
     revalidatePath('/lab');
 }
 
 export async function toggleProjectPublish(formData: FormData) {
-    await getAuthUser();
+    const { supabase } = await getAuthUser();
     const id = formData.get('id') as string;
     const current = formData.get('currentState') === 'true';
-    await prisma.project.update({
-        where: { id },
-        data: { published: !current },
-    });
+
+    const { error } = await supabase.from('projects').update({
+        published: !current,
+        updated_at: new Date().toISOString()
+    }).eq('id', id);
+
+    if (error) throw new Error(`Failed to toggle project: ${error.message}`);
+
     revalidatePath('/admin/projects');
     revalidatePath('/lab');
 }
@@ -203,7 +213,7 @@ export async function toggleProjectPublish(formData: FormData) {
 // --- PROFILE ACTIONS ---
 
 export async function updateProfile(formData: FormData) {
-    await getAuthUser();
+    const { supabase } = await getAuthUser();
 
     const name = formData.get('name') as string;
     const bio = formData.get('bio') as string;
@@ -212,21 +222,20 @@ export async function updateProfile(formData: FormData) {
     const github = formData.get('github') as string;
     const linkedin = formData.get('linkedin') as string;
 
-    // Assuming single profile, or find first
-    const profile = await prisma.profile.findFirst();
+    // Check if profile exists
+    const { data: profile } = await supabase.from('profile').select('*').single();
 
     if (profile) {
-        await prisma.profile.update({
-            where: { id: profile.id },
-            data: { name, bio, avatarUrl, twitter, github, linkedin }
-        });
+        await supabase.from('profile').update({
+            name, bio, avatar_url: avatarUrl, twitter, github, linkedin, updated_at: new Date().toISOString()
+        }).eq('id', profile.id);
     } else {
-        await prisma.profile.create({
-            data: { name, bio, avatarUrl, twitter, github, linkedin }
+        await supabase.from('profile').insert({
+            name, bio, avatar_url: avatarUrl, twitter, github, linkedin
         });
     }
 
     revalidatePath('/admin/profile');
-    revalidatePath('/blog'); // Revalidate blog as it shows profile
+    revalidatePath('/blog');
     redirect('/admin/profile');
 }

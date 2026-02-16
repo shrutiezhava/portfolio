@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/Card';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import prisma from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -12,10 +12,13 @@ export const metadata: Metadata = {
 };
 
 async function getPosts() {
-    return await prisma.post.findMany({
-        where: { published: true },
-        orderBy: { createdAt: 'desc' },
-    });
+    const supabase = await createClient();
+    const { data: posts } = await supabase
+        .from('posts')
+        .select('*')
+        .eq('published', true)
+        .order('created_at', { ascending: false });
+    return posts || [];
 }
 
 export default async function BlogPage() {
@@ -37,10 +40,10 @@ export default async function BlogPage() {
                     {posts.map((post) => (
                         <Card key={post.id} variant="bordered" className="group">
                             <div className="flex flex-col md:flex-row gap-8 items-start">
-                                {post.featuredImage && (
+                                {post.featured_image && (
                                     <div className="w-full md:w-1/3 aspect-video relative rounded-lg overflow-hidden bg-slate/10">
                                         <Image
-                                            src={post.featuredImage}
+                                            src={post.featured_image}
                                             alt={post.title}
                                             fill
                                             className="object-cover group-hover:scale-105 transition-transform duration-500"
@@ -51,7 +54,7 @@ export default async function BlogPage() {
                                 <div className="flex-1">
                                     <div className="mb-4 flex items-center gap-3 text-sm font-mono text-slate uppercase tracking-wider">
                                         <span className="w-2 h-2 rounded-full bg-accent-lime"></span>
-                                        {new Date(post.createdAt).toLocaleDateString()}
+                                        {new Date(post.created_at).toLocaleDateString()}
                                     </div>
                                     <h2 className="text-3xl font-bold mb-4 hover:text-accent-blue transition-colors">
                                         <Link href={`/blog/${post.slug}`}>{post.title}</Link>

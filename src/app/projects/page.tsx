@@ -3,7 +3,7 @@ import { Card } from '@/components/ui/Card';
 import { ExternalLink, Github } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import prisma from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
@@ -12,9 +12,13 @@ export const metadata: Metadata = {
 };
 
 async function getProjects() {
-    return await prisma.project.findMany({
-        orderBy: { createdAt: 'desc' },
-    });
+    const supabase = await createClient();
+    const { data: projects } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('published', true)
+        .order('created_at', { ascending: false });
+    return projects || [];
 }
 
 export default async function ProjectsPage() {
@@ -35,10 +39,10 @@ export default async function ProjectsPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {projects.map((project) => (
                         <Card key={project.id} variant="solid" className="p-0 overflow-hidden group h-full flex flex-col">
-                            {project.image && (
+                            {project.featured_image && (
                                 <div className="h-64 relative w-full overflow-hidden bg-slate/10">
                                     <Image
-                                        src={project.image}
+                                        src={project.featured_image}
                                         alt={project.title}
                                         fill
                                         className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500 group-hover:scale-105"
@@ -46,7 +50,7 @@ export default async function ProjectsPage() {
                                     />
                                 </div>
                             )}
-                            {!project.image && (
+                            {!project.featured_image && (
                                 <div className="h-64 bg-gradient-to-br from-slate/20 to-slate/5 w-full flex items-center justify-center">
                                     <span className="font-mono text-slate/50">NO PREVIEW</span>
                                 </div>
@@ -55,13 +59,13 @@ export default async function ProjectsPage() {
                                 <div className="flex justify-between items-start mb-4">
                                     <h2 className="text-2xl font-bold">{project.title}</h2>
                                     <div className="flex gap-2">
-                                        {project.github && (
-                                            <Link href={project.github} target="_blank" className="p-2 hover:bg-background rounded-full transition-colors" title="View Source">
+                                        {project.github_url && (
+                                            <Link href={project.github_url} target="_blank" className="p-2 hover:bg-background rounded-full transition-colors" title="View Source">
                                                 <Github className="w-5 h-5" />
                                             </Link>
                                         )}
-                                        {project.link && (
-                                            <Link href={project.link} target="_blank" className="p-2 hover:bg-background rounded-full transition-colors" title="View Live">
+                                        {project.live_url && (
+                                            <Link href={project.live_url} target="_blank" className="p-2 hover:bg-background rounded-full transition-colors" title="View Live">
                                                 <ExternalLink className="w-5 h-5" />
                                             </Link>
                                         )}
@@ -71,7 +75,7 @@ export default async function ProjectsPage() {
                                     {project.description}
                                 </p>
                                 <div className="flex flex-wrap gap-2 mt-auto">
-                                    {project.techStack.split(',').map((tech) => (
+                                    {project.tech_stack.split(',').map((tech: string) => (
                                         <span key={tech} className="px-3 py-1 bg-background/50 border border-slate/10 rounded-full text-xs font-mono font-medium text-slate">
                                             {tech.trim()}
                                         </span>

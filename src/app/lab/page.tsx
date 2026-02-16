@@ -1,21 +1,24 @@
 
 import { Card } from '@/components/ui/Card';
-import { ExternalLink, Github } from 'lucide-react';
+import { Beaker, ExternalLink, Github } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
-import prisma from '@/lib/prisma';
+import { createClient } from '@/lib/supabase/server';
 import { Metadata } from 'next';
 
 export const metadata: Metadata = {
-    title: 'Lab Experiments | Digital Lab',
-    description: 'Ongoing research and digital artifacts.',
+    title: 'Lab | Digital Lab',
+    description: 'Experimental projects and digital artifacts.',
 };
 
 async function getProjects() {
-    return await prisma.project.findMany({
-        where: { published: true },
-        orderBy: { createdAt: 'desc' },
-    });
+    const supabase = await createClient();
+    const { data: projects } = await supabase
+        .from('projects')
+        .select('*')
+        .eq('published', true)
+        .order('created_at', { ascending: false });
+    return projects || [];
 }
 
 export default async function LabPage() {
@@ -27,68 +30,58 @@ export default async function LabPage() {
                 <div className="container mx-auto px-6 max-w-5xl">
                     <h1 className="text-6xl font-display font-black tracking-tighter mb-4">THE LAB.</h1>
                     <p className="text-xl text-slate max-w-2xl font-light">
-                        Active experiments and prototypes. Enter at your own risk.
+                        Where ideas are tested. Some survive, others mutate. Failure is just data.
                     </p>
                 </div>
             </div>
 
             <div className="container mx-auto px-6 max-w-5xl py-20">
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                     {projects.map((project) => (
-                        <Card key={project.id} variant="solid" className="p-0 overflow-hidden group h-full flex flex-col hover:border-accent-blue/50 border border-transparent transition-all">
-                            {project.featuredImage && (
-                                <div className="h-64 relative w-full overflow-hidden bg-slate/10">
+                        <Card key={project.id} variant="bordered" className="group h-full flex flex-col">
+                            {project.featured_image && (
+                                <div className="w-full aspect-video relative rounded-t-lg overflow-hidden bg-slate/10">
                                     <Image
-                                        src={project.featuredImage}
+                                        src={project.featured_image}
                                         alt={project.title}
                                         fill
-                                        className="object-cover grayscale group-hover:grayscale-0 transition-all duration-500 group-hover:scale-105"
+                                        className="object-cover group-hover:scale-105 transition-transform duration-500"
                                         sizes="(max-width: 768px) 100vw, 50vw"
                                     />
-                                </div>
-                            )}
-                            {!project.featuredImage && (
-                                <div className="h-64 bg-slate/5 w-full flex items-center justify-center border-b border-border">
-                                    <span className="font-mono text-slate/50">NO VISUAL</span>
-                                </div>
-                            )}
-                            <div className="p-8 flex-1 flex flex-col">
-                                <div className="flex justify-between items-start mb-4">
-                                    <h2 className="text-2xl font-bold hover:text-accent-blue transition-colors">
-                                        <Link href={`/lab/${project.slug}`}>{project.title}</Link>
-                                    </h2>
-                                    <div className="flex gap-2">
-                                        {project.githubUrl && (
-                                            <Link href={project.githubUrl} target="_blank" className="p-2 hover:bg-background rounded-full transition-colors" title="Source Code">
-                                                <Github className="w-5 h-5" />
-                                            </Link>
-                                        )}
-                                        {project.liveUrl && (
-                                            <Link href={project.liveUrl} target="_blank" className="p-2 hover:bg-background rounded-full transition-colors" title="Live Demo">
-                                                <ExternalLink className="w-5 h-5" />
-                                            </Link>
-                                        )}
+                                    <div className="absolute top-4 right-4 bg-background/80 backdrop-blur-sm px-3 py-1 rounded-full text-xs font-mono border border-border">
+                                        {project.tech_stack}
                                     </div>
                                 </div>
-                                <p className="text-slate mb-6 text-sm leading-relaxed flex-1 line-clamp-3">
+                            )}
+                            <div className="p-6 flex-1 flex flex-col">
+                                <h2 className="text-2xl font-bold mb-2 group-hover:text-accent-blue transition-colors">
+                                    <Link href={`/lab/${project.slug}`}>{project.title}</Link>
+                                </h2>
+                                <p className="text-slate mb-6 line-clamp-3 leading-relaxed flex-1">
                                     {project.description}
                                 </p>
-                                <div className="flex flex-wrap gap-2 mt-auto mb-4">
-                                    {project.techStack.split(',').map((tech) => (
-                                        <span key={tech} className="px-3 py-1 bg-background/50 border border-slate/10 rounded-full text-xs font-mono font-medium text-slate">
-                                            {tech.trim()}
-                                        </span>
-                                    ))}
+                                <div className="flex items-center gap-4 mt-auto pt-4 border-t border-dashed border-border/50">
+                                    <Link href={`/lab/${project.slug}`} className="text-sm font-medium flex items-center gap-2 hover:text-accent-blue transition-all">
+                                        <Beaker className="w-4 h-4" /> Inspect
+                                    </Link>
+                                    <div className="flex-1"></div>
+                                    {project.github_url && (
+                                        <Link href={project.github_url} target="_blank" className="text-slate hover:text-ink transition-colors">
+                                            <Github className="w-4 h-4" />
+                                        </Link>
+                                    )}
+                                    {project.live_url && (
+                                        <Link href={project.live_url} target="_blank" className="text-slate hover:text-ink transition-colors">
+                                            <ExternalLink className="w-4 h-4" />
+                                        </Link>
+                                    )}
                                 </div>
-                                <Link href={`/lab/${project.slug}`} className="w-full text-center py-2 border border-slate/20 rounded-lg hover:bg-ink hover:text-background transition-colors text-sm font-medium mt-2">
-                                    View Data
-                                </Link>
                             </div>
                         </Card>
                     ))}
                     {projects.length === 0 && (
-                        <div className="text-center py-20 text-slate col-span-2">
-                            <p className="text-xl font-mono">No active experiments found.</p>
+                        <div className="col-span-full text-center py-20 text-slate">
+                            <p className="text-xl font-mono">Lab is currently empty. Experiments in progress.</p>
                         </div>
                     )}
                 </div>

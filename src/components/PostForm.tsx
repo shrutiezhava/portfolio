@@ -1,14 +1,14 @@
+
 'use client';
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/Button';
-import { Card } from '@/components/ui/Card';
 import TipTap from '@/components/editor/TipTap';
 import { createPost, updatePost } from '@/app/actions';
 
 interface PostFormProps {
-    post?: any; // Avoiding full Prisma type for brevity, but could import
+    post?: any;
 }
 
 export default function PostForm({ post }: PostFormProps) {
@@ -18,7 +18,7 @@ export default function PostForm({ post }: PostFormProps) {
 
     const handleSubmit = async (formData: FormData) => {
         setIsSubmitting(true);
-        formData.set('content', content); // Add content manually as TipTap doesn't use name attribute
+        formData.set('content', content);
 
         try {
             if (post) {
@@ -34,12 +34,9 @@ export default function PostForm({ post }: PostFormProps) {
     };
 
     const handleSlugGen = (e: React.ChangeEvent<HTMLInputElement>) => {
-        if (!post) { // Only auto-gen for new posts or if slug field is empty
+        if (!post) {
             const title = e.target.value;
             const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
-            // We can't easily update another un-controlled input's value without refs or state.
-            // So I'll make slug a controlled input or use setSlug state.
-            // For simplicity, let's use document.getElementById since this is a quick MVP form.
             const slugInput = document.getElementById('slug') as HTMLInputElement;
             if (slugInput) slugInput.value = slug;
         }
@@ -111,7 +108,7 @@ export default function PostForm({ post }: PostFormProps) {
                         type="text"
                         name="featuredImage"
                         id="featuredImage"
-                        defaultValue={post?.featuredImage}
+                        defaultValue={post?.featured_image}
                         placeholder="https://..."
                         className="flex-1 px-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-accent-blue/50 outline-none font-mono text-sm"
                     />

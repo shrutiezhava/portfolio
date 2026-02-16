@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -108,7 +109,7 @@ export default function ProjectForm({ project }: ProjectFormProps) {
                         type="text"
                         name="liveUrl"
                         id="liveUrl"
-                        defaultValue={project?.liveUrl}
+                        defaultValue={project?.live_url}
                         className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-accent-blue/50 outline-none font-mono text-sm"
                     />
                 </div>
@@ -118,7 +119,7 @@ export default function ProjectForm({ project }: ProjectFormProps) {
                         type="text"
                         name="githubUrl"
                         id="githubUrl"
-                        defaultValue={project?.githubUrl}
+                        defaultValue={project?.github_url}
                         className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-accent-blue/50 outline-none font-mono text-sm"
                     />
                 </div>
@@ -130,7 +131,7 @@ export default function ProjectForm({ project }: ProjectFormProps) {
                     type="text"
                     name="techStack"
                     id="techStack"
-                    defaultValue={project?.techStack}
+                    defaultValue={project?.tech_stack}
                     placeholder="Next.js, Tailwind, Prisma..."
                     className="w-full px-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-accent-blue/50 outline-none font-mono text-sm"
                     required
@@ -144,7 +145,7 @@ export default function ProjectForm({ project }: ProjectFormProps) {
                         type="text"
                         name="featuredImage"
                         id="featuredImage"
-                        defaultValue={project?.featuredImage}
+                        defaultValue={project?.featured_image}
                         placeholder="https://..."
                         className="flex-1 px-4 py-2 bg-background border border-border rounded-lg focus:ring-2 focus:ring-accent-blue/50 outline-none font-mono text-sm"
                     />

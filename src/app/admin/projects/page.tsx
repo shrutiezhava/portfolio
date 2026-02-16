@@ -1,74 +1,87 @@
 
-import Link from 'next/link';
-import { Button } from '@/components/ui/Button';
-import prisma from '@/lib/prisma';
-import { Plus, Edit, Trash2, Eye, EyeOff } from 'lucide-react';
-import { deleteProject, toggleProjectPublish } from '@/app/actions';
+import Link from "next/link";
+import { Plus, Edit, Trash2, Eye, EyeOff } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { createClient } from "@/lib/supabase/server";
+import { deleteProject, toggleProjectPublish } from "@/app/actions";
 
 async function getProjects() {
-    return await prisma.project.findMany({
-        orderBy: { createdAt: 'desc' },
-    });
+    const supabase = await createClient();
+    const { data: projects } = await supabase
+        .from('projects')
+        .select('*')
+        .order('created_at', { ascending: false });
+    return projects || [];
 }
 
 export default async function AdminProjectsPage() {
     const projects = await getProjects();
 
     return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
+        <div>
+            <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-display font-bold">Experiments</h1>
-                    <p className="text-slate">Manage your lab projects and prototypes.</p>
+                    <p className="text-slate">Manage your lab projects.</p>
                 </div>
                 <Link href="/admin/projects/new">
-                    <Button>
-                        <Plus className="w-4 h-4 mr-2" /> New Experiment
+                    <Button className="gap-2">
+                        <Plus className="w-4 h-4" /> New Experiment
                     </Button>
                 </Link>
             </div>
 
-            <div className="space-y-4">
-                {projects.map((project) => (
-                    <div key={project.id} className="flex items-center justify-between p-6 bg-background border border-border rounded-xl hover:border-ink transition-colors group">
-                        <div>
-                            <h3 className="text-xl font-bold mb-1 flex items-center gap-3">
-                                {project.title}
-                                <span className={`text-xs px-2 py-0.5 rounded-full font-mono uppercase tracking-wider ${project.published ? "bg-accent-lime/20 text-accent-lime-dark" : "bg-accent-coral/20 text-accent-coral-dark"}`}>
-                                    {project.published ? "LIVE" : "DRAFT"}
-                                </span>
-                            </h3>
-                            <div className="text-sm text-slate font-mono">
-                                {new Date(project.createdAt).toLocaleDateString()}
-                            </div>
-                        </div>
-                        <div className="flex items-center gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
-                            <form action={toggleProjectPublish}>
-                                <input type="hidden" name="id" value={project.id} />
-                                <input type="hidden" name="currentState" value={String(project.published)} />
-                                <Button type="submit" variant="ghost" size="sm" title={project.published ? "Unpublish" : "Publish"}>
-                                    {project.published ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
-                                </Button>
-                            </form>
-                            <Link href={`/admin/projects/edit/${project.id}`}>
-                                <Button variant="ghost" size="sm">
-                                    <Edit className="w-4 h-4" />
-                                </Button>
-                            </Link>
-                            <form action={deleteProject}>
-                                <input type="hidden" name="id" value={project.id} />
-                                <Button type="submit" variant="ghost" size="sm" className="text-accent-coral hover:bg-accent-coral/10 hover:text-accent-coral">
-                                    <Trash2 className="w-4 h-4" />
-                                </Button>
-                            </form>
-                        </div>
-                    </div>
-                ))}
-                {projects.length === 0 && (
-                    <div className="text-center py-20 bg-background border border-border border-dashed rounded-xl">
-                        <p className="text-slate">No active experiments.</p>
-                    </div>
-                )}
+            <div className="bg-background border border-border rounded-xl overflow-hidden">
+                <table className="w-full text-left text-sm">
+                    <thead>
+                        <tr className="border-b border-border bg-alt-section/50">
+                            <th className="p-4 font-medium text-slate">Title</th>
+                            <th className="p-4 font-medium text-slate">Status</th>
+                            <th className="p-4 font-medium text-slate">Date</th>
+                            <th className="p-4 font-medium text-slate text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border">
+                        {projects.map((project) => (
+                            <tr key={project.id} className="hover:bg-alt-section/30 transition-colors">
+                                <td className="p-4 font-medium">{project.title}</td>
+                                <td className="p-4">
+                                    <form action={toggleProjectPublish}>
+                                        <input type="hidden" name="id" value={project.id} />
+                                        <input type="hidden" name="currentState" value={String(project.published)} />
+                                        <button type="submit" className={`flex items-center gap-2 px-2 py-1 rounded-full text-xs font-medium border ${project.published ? 'bg-accent-lime/10 text-emerald-500 border-accent-lime/20' : 'bg-slate/10 text-slate border-slate/20'}`}>
+                                            {project.published ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                                            {project.published ? 'Active' : 'Archived'}
+                                        </button>
+                                    </form>
+                                </td>
+                                <td className="p-4 text-slate font-mono text-xs">
+                                    {new Date(project.created_at).toLocaleDateString()}
+                                </td>
+                                <td className="p-4 flex gap-2 justify-end">
+                                    <Link href={`/admin/projects/edit/${project.id}`}>
+                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                                            <Edit className="w-4 h-4" />
+                                        </Button>
+                                    </Link>
+                                    <form action={deleteProject}>
+                                        <input type="hidden" name="id" value={project.id} />
+                                        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:text-red-500 hover:bg-red-500/10">
+                                            <Trash2 className="w-4 h-4" />
+                                        </Button>
+                                    </form>
+                                </td>
+                            </tr>
+                        ))}
+                        {projects.length === 0 && (
+                            <tr>
+                                <td colSpan={4} className="p-8 text-center text-slate">
+                                    No experiments found. Start building.
+                                </td>
+                            </tr>
+                        )}
+                    </tbody>
+                </table>
             </div>
         </div>
     );

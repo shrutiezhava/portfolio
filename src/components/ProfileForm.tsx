@@ -1,3 +1,4 @@
+
 'use client';
 
 import { useState } from 'react';
@@ -12,7 +13,7 @@ interface ProfileFormProps {
 
 export default function ProfileForm({ profile }: ProfileFormProps) {
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [avatarPreview, setAvatarPreview] = useState(profile?.avatarUrl || '');
+    const [avatarPreview, setAvatarPreview] = useState(profile?.avatar_url || '');
 
     const handleSubmit = async (formData: FormData) => {
         setIsSubmitting(true);
@@ -77,7 +78,7 @@ export default function ProfileForm({ profile }: ProfileFormProps) {
                         Change Avatar
                         <input type="file" className="hidden" accept="image/*" onChange={handleAvatarUpload} />
                     </label>
-                    <input type="hidden" name="avatarUrl" id="avatarUrl" defaultValue={profile?.avatarUrl} />
+                    <input type="hidden" name="avatarUrl" id="avatarUrl" defaultValue={profile?.avatar_url} />
                     <p className="text-xs text-slate mt-2">Recommended: 400x400px</p>
                 </div>
             </div>
