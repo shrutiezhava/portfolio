@@ -1,5 +1,5 @@
 
-import HeroSection from "@/components/HeroSection";
+import { HeroSection } from "@/components/HeroSection";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
