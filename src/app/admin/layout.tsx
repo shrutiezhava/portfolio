@@ -2,7 +2,7 @@
 import AdminSidebar from '@/components/AdminSidebar';
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { env } from '@/lib/env';
+
 
 // Force dynamic rendering for admin routes to ensure auth checks run on every request
 export const dynamic = "force-dynamic";
